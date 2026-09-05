@@ -18,7 +18,8 @@ jobs:
     secrets: inherit
     with:
       task: |
-        sudo apt install xmake
+        curl -fsSL https://xmake.io/shget.text | bash
+        export PATH="$HOME/.local/bin:$PATH"
         xrepo install -y libsdl3 libsdl3_ttf
       matrix: >
         [
@@ -58,7 +59,9 @@ jobs:
       #~ So build + test on PowerShell, keeping strawberry perl on PATH.
       task: |
         winget install xmake --accept-source-agreements
-        xrepo install -y libsdl3 libsdl3_ttf
+        XREPO="/c/Program Files/xmake/xrepo.exe"
+        [ -f "$XREPO" ] || XREPO="$LOCALAPPDATA/Programs/xmake/xrepo.exe"
+        "$XREPO" install -y libsdl3 libsdl3_ttf
       matrix: >
         [
           {"platform_name":"windows","os":"windows-latest","arch":"x86_64","toolchain":"gcc","prepare":"choco install strawberryperl"},
