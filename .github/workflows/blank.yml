@@ -57,6 +57,10 @@ jobs:
       #~ is a CI-env artifact, not a code bug: t/00-05 pass under PowerShell
       #~ (native Win32 spawning), which is what the passing 0.08 release used.
       #~ So build + test on PowerShell, keeping strawberry perl on PATH.
+      #~ xmake-repo's source-built libsdl3_ttf fails on Windows ("Could NOT
+      #~ find Freetype", SDLTTF_VENDORED=OFF with no system freetype). Install
+      #~ the SDL stack from vcpkg via xrepo instead, which builds freetype +
+      #~ sdl3-ttf together correctly.
       task: |
         winget install xmake --accept-source-agreements
         for d in "/c/Program Files/xmake" "$LOCALAPPDATA/Programs/xmake" "$LOCALAPPDATA/xmake"; do
@@ -70,7 +74,8 @@ jobs:
           where.exe xmake 2>/dev/null || true
           exit 1
         fi
-        "$XREPO" install -y libsdl3 libsdl3_ttf
+        "$XREPO" install -y vcpkg::freetype
+        "$XREPO" install -y vcpkg::sdl3 vcpkg::sdl3-ttf
       matrix: >
         [
           {"platform_name":"windows","os":"windows-latest","arch":"x86_64","toolchain":"gcc","prepare":"choco install strawberryperl"},
