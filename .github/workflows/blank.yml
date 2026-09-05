@@ -57,10 +57,15 @@ jobs:
       #~ is a CI-env artifact, not a code bug: t/00-05 pass under PowerShell
       #~ (native Win32 spawning), which is what the passing 0.08 release used.
       #~ So build + test on PowerShell, keeping strawberry perl on PATH.
-      #~ xmake-repo's source-built libsdl3_ttf fails on Windows ("Could NOT
-      #~ find Freetype", SDLTTF_VENDORED=OFF with no system freetype). Install
-      #~ the SDL stack from vcpkg via xrepo instead, which builds freetype +
-      #~ sdl3-ttf together correctly.
+      #~ xmake-repo's source-built libsdl3_ttf needs freetype, but Strawberry
+      #~ Perl (installed by `prepare`) ships its own mingw freetype/zlib, which
+      #~ xmake's generic system-detection mistakes for usable packages
+      #~ ("system::freetype") even though SDL3_ttf's CMake cannot consume them
+      #~ ("Could NOT find Freetype"). Quarantine the Strawberry copies so xmake
+      #~ builds freetype/zlib from source, and pin the mingw toolchain to
+      #~ Strawberry so `ar`/`ninja` resolve consistently. The xmake package
+      #~ cache then serves later build steps without re-detecting the system
+      #~ packages.
       task: |
         winget install xmake --accept-source-agreements
         for d in "/c/Program Files/xmake" "$LOCALAPPDATA/Programs/xmake" "$LOCALAPPDATA/xmake"; do
@@ -74,8 +79,14 @@ jobs:
           where.exe xmake 2>/dev/null || true
           exit 1
         fi
-        "$XREPO" install -y vcpkg::freetype
-        "$XREPO" install -y vcpkg::sdl3 vcpkg::sdl3-ttf
+        Q="/c/Strawberry/c"
+        for p in include/freetype2 include/zlib.h include/zconf.h; do
+          if [ -e "$Q/$p" ]; then mv "$Q/$p" "$Q/$p.off"; fi
+        done
+        for f in "$Q"/lib/libfreetype*.a "$Q"/lib/libz*.a "$Q"/bin/libfreetype*.dll "$Q"/bin/libz*.dll; do
+          if [ -e "$f" ]; then mv "$f" "$f.off"; fi
+        done
+        "$XREPO" install -y -p mingw --mingw="C:/Strawberry/c" libsdl3 libsdl3_ttf
       matrix: >
         [
           {"platform_name":"windows","os":"windows-latest","arch":"x86_64","toolchain":"gcc","prepare":"choco install strawberryperl"},
