@@ -59,8 +59,17 @@ jobs:
       #~ So build + test on PowerShell, keeping strawberry perl on PATH.
       task: |
         winget install xmake --accept-source-agreements
-        XREPO="/c/Program Files/xmake/xrepo.exe"
-        [ -f "$XREPO" ] || XREPO="$LOCALAPPDATA/Programs/xmake/xrepo.exe"
+        for d in "/c/Program Files/xmake" "$LOCALAPPDATA/Programs/xmake" "$LOCALAPPDATA/xmake"; do
+          if [ -f "$d/xrepo.bat" ]; then XREPO="$d/xrepo.bat"; break; fi
+        done
+        if [ -z "${XREPO:-}" ]; then
+          echo "xrepo.bat not found; searching install locations:"
+          ls -la "/c/Program Files/xmake" 2>/dev/null || true
+          ls -la "$LOCALAPPDATA/Programs/xmake" 2>/dev/null || true
+          ls -la "$LOCALAPPDATA/xmake" 2>/dev/null || true
+          where.exe xmake 2>/dev/null || true
+          exit 1
+        fi
         "$XREPO" install -y libsdl3 libsdl3_ttf
       matrix: >
         [
