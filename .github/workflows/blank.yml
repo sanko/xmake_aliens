@@ -90,8 +90,17 @@ jobs:
         # the SDL packages once that dependency chain is cached. Running all
         # four in one `-j 6` transaction lets the per-package mingw toolchain
         # config race each other on this runner (zlib and libsdl3 each died in
-        # different random ways across runs). A hard timeout still guards
-        # against stalls, and any installdir.failed log is dumped in-band.
+        # different random ways across runs).
+        #
+        # The zlib death was xmake's inner re-exec (`execv(xmake.exe build
+        # --jobs=6) failed(-1)`) breaking when spawned from deep under
+        # git-bash, with a foreign cl.exe/MSVC probe injected mid-build. That
+        # is the same MSYS->Win32 EINVAL spawn failure noted above: on this
+        # machine the same recipe passes under PowerShell because every spawn
+        # is native Win32. So drive the installs through powershell.exe (all
+        # xmake spawns stay native), keep a hard timeout against stalls, and
+        # dump any installdir.failed log in-band.
+        XPW=$(cygpath -w "$(dirname "$XREPO")/xmake.exe")
         dump_failed() {
           for f in $(find "$LOCALAPPDATA/.xmake/cache/packages" -path "*installdir.failed*" -name install.txt 2>/dev/null); do
             echo "===== $f ====="
@@ -99,14 +108,14 @@ jobs:
           done
         }
         set +e
-        timeout 1500 "$XREPO" install -y -p mingw --mingw="C:/Strawberry/c" -v zlib freetype
+        timeout 1500 powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& '$XPW' xrepo install -y -p mingw --mingw=C:/Strawberry/c -v zlib freetype; exit \$LASTEXITCODE"
         ec1=$?
         dump_failed
         if [ $ec1 -ne 0 ]; then
           echo "zlib/freetype install failed (exit=$ec1, 124 = timed out)"
           exit $ec1
         fi
-        timeout 1500 "$XREPO" install -y -p mingw --mingw="C:/Strawberry/c" -v libsdl3 libsdl3_ttf
+        timeout 1500 powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& '$XPW' xrepo install -y -p mingw --mingw=C:/Strawberry/c -v libsdl3 libsdl3_ttf; exit \$LASTEXITCODE"
         ec2=$?
         set -e
         echo "libsdl3/libsdl3_ttf install exit=$ec2 (124 = timed out)"
