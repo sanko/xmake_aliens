@@ -86,7 +86,20 @@ jobs:
         for f in "$Q"/lib/libfreetype*.a "$Q"/lib/libz*.a "$Q"/bin/libfreetype*.dll "$Q"/bin/libz*.dll; do
           if [ -e "$f" ]; then mv "$f" "$f.off"; fi
         done
-        "$XREPO" install -y -p mingw --mingw="C:/Strawberry/c" libsdl3 libsdl3_ttf
+        # Debug iteration: xmake's runner-local zlib source build failed within
+        # ~1s before emitting any real diagnostic, then the step hung ~29 min.
+        # Keep a hard timeout so a stall fails fast, and dump any
+        # installdir.failed logs in-band so the runner's zlib error is visible.
+        set +e
+        timeout 1500 "$XREPO" install -y -p mingw --mingw="C:/Strawberry/c" -v libsdl3 libsdl3_ttf
+        xrepo_ec=$?
+        set -e
+        echo "xrepo exit=$xrepo_ec (124 = timed out)"
+        for f in $(find "$LOCALAPPDATA/.xmake/cache/packages" -path "*installdir.failed*" -name install.txt 2>/dev/null); do
+          echo "===== $f ====="
+          tail -n 80 "$f"
+        done
+        exit $xrepo_ec
       matrix: >
         [
           {"platform_name":"windows","os":"windows-latest","arch":"x86_64","toolchain":"gcc","prepare":"choco install strawberryperl"},
