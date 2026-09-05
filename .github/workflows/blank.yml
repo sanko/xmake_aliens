@@ -19,6 +19,7 @@ jobs:
     with:
       task: |
         sudo apt install xmake
+        xrepo install libsdl3 libsdl3_ttf
       matrix: >
         [
           {"platform_name":"ubuntu","os":"ubuntu-latest","arch":"x86_64","toolchain":"gcc","perl_version":"5.40.5"},
@@ -35,6 +36,7 @@ jobs:
     with:
       task: |
         brew install xmake
+        xrepo install libsdl3 libsdl3_ttf
       matrix: >
         [
           {"platform_name":"macos","os":"macos-15","arch":"aarch64","toolchain":"gcc","perl_version":"5.42.3"},
@@ -56,6 +58,7 @@ jobs:
       #~ So build + test on PowerShell, keeping strawberry perl on PATH.
       task: |
         winget install xmake --accept-source-agreements
+        xrepo install libsdl3 libsdl3_ttf
       matrix: >
         [
           {"platform_name":"windows","os":"windows-latest","arch":"x86_64","toolchain":"gcc","prepare":"choco install strawberryperl"},
