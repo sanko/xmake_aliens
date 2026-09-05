@@ -55,7 +55,7 @@ jobs:
       #~ (native Win32 spawning), which is what the passing 0.08 release used.
       #~ So build + test on PowerShell, keeping strawberry perl on PATH.
       task: |
-        winget install xmake
+        winget install xmake --accept-source-agreements
       matrix: >
         [
           {"platform_name":"windows","os":"windows-latest","arch":"x86_64","toolchain":"gcc","prepare":"choco install strawberryperl"},
